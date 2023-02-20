@@ -5,13 +5,26 @@ import (
 )
 
 type Scanner struct {
-	source string
-	token  []token.Token
+	source  string
+	start   int
+	current int
+	line    int
+	token   []token.Token
 }
 
-func scanTokens()([]token.Token){
-	do {
-		start = token
+func (scanner *Scanner) scanTokens() []token.Token {
+	for !scanner.isAtEnd() {
+		scanner.start = scanner.current
 		scanToken()
-	} while(!isAtEnd())
+	}
+	scanner.token = append(scanner.token, token.Token{
+		TokenType: token.EOF,
+		Line:      scanner.line,
+	},
+	)
+	return scanner.token
+}
+
+func (scanner *Scanner) isAtEnd() bool {
+	return scanner.current >= len(scanner.source)
 }
