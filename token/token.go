@@ -1,7 +1,7 @@
 package token
 
 type Token struct {
-	TokenType int
+	TokenType TokenType
 	Lexeme    string
 	Literal   interface{}
 	Line      int
