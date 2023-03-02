@@ -1,6 +1,8 @@
 package scanner
 
 import (
+	"strconv"
+
 	"../error"
 	"../token"
 )
@@ -77,8 +79,27 @@ func (sc *Scanner) scanToken() {
 		} else {
 			sc.addToken(token.GREATER)
 		}
+	case '/':
+		if sc.match('/') {
+			for sc.peek() != '\n' && !sc.isAtEnd() {
+				sc.advance()
+			}
+		} else {
+			sc.addToken(token.SLASH)
+		}
+	case ' ':
+	case '\r':
+	case '\t':
+	case '\n':
+		sc.line++
+	case '"':
+		sc.string()
 	default:
-		error.ReportError(sc.line, "Unexpected character.")
+		if isDigit(c) {
+			sc.number()
+		} else {
+			error.ReportError(sc.line, "Unexpected character.")
+		}
 	}
 }
 
@@ -111,4 +132,49 @@ func (sc *Scanner) addTokenType(tokenType token.TokenType, literal interface{}) 
 		Line:      sc.line,
 	}
 	sc.token = append(sc.token, token)
+}
+
+func (sc *Scanner) peek() byte {
+	if sc.isAtEnd() {
+		return 0
+	}
+	return sc.source[sc.current]
+}
+
+func (sc *Scanner) string() {
+	for sc.peek() != '"' && !sc.isAtEnd() {
+		if sc.peek() == '\n' {
+			sc.line++
+		}
+		sc.advance()
+	}
+	if sc.isAtEnd() {
+		error.ReportError(sc.line, "Unterminated string.")
+		return
+	}
+	sc.advance()
+	value := sc.source[sc.start+1 : sc.current-1]
+	sc.addTokenType(token.STRING, value)
+}
+
+func isDigit(c byte) bool {
+	return c >= 0 && c <= 9
+}
+
+func (sc *Scanner) number() {
+	for isDigit(sc.peek()) {
+		sc.advance()
+	}
+	if sc.peek() == '.' && isDigit(sc.peekNext()) {
+		sc.advance()
+		for isDigit(sc.peek()) {
+			sc.advance()
+		}
+	}
+	number, err := strconv.ParseFloat(sc.source[sc.start:sc.current], 64)
+	if err != nil {
+		error.ReportError(sc.line, "Invalid number format")
+		return
+	}
+	sc.addTokenType(token.NUMBER, number)
 }
