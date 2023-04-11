@@ -15,6 +15,25 @@ type Scanner struct {
 	token   []token.Token
 }
 
+var keywords = map[string]token.TokenType{
+	"and":    token.AND,
+	"class":  token.CLASS,
+	"else":   token.ELSE,
+	"false":  token.FALSE,
+	"for":    token.FOR,
+	"fun":    token.FUN,
+	"if":     token.IF,
+	"nil":    token.NIL,
+	"or":     token.OR,
+	"print":  token.PRINT,
+	"return": token.RETURN,
+	"super":  token.SUPER,
+	"this":   token.THIS,
+	"true":   token.TRUE,
+	"var":    token.VAR,
+	"while":  token.WHILE,
+}
+
 func (scanner *Scanner) scanTokens() []token.Token {
 	for !scanner.isAtEnd() {
 		scanner.start = scanner.current
@@ -97,6 +116,8 @@ func (sc *Scanner) scanToken() {
 	default:
 		if isDigit(c) {
 			sc.number()
+		} else if isAlpha(c) {
+			sc.identifier()
 		} else {
 			error.ReportError(sc.line, "Unexpected character.")
 		}
@@ -177,4 +198,33 @@ func (sc *Scanner) number() {
 		return
 	}
 	sc.addTokenType(token.NUMBER, number)
+}
+
+func (sc *Scanner) peekNext() byte {
+	if sc.current+1 >= len(sc.source) {
+		return 0
+	}
+	return sc.source[sc.current+1]
+}
+
+func (sc *Scanner) identifier() {
+	for sc.isAlphaNumeric(sc.peek()) {
+		sc.advance()
+	}
+
+	text := sc.source[sc.start:sc.current]
+	tokenType, ok := keywords[text]
+	if ok {
+		sc.addToken(tokenType)
+	} else {
+		sc.addToken(token.IDENTIFIER)
+	}
+}
+
+func isAlpha(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'
+}
+
+func (sc *Scanner) isAlphaNumeric(c byte) bool {
+	return isAlpha(c) || isDigit(c)
 }
