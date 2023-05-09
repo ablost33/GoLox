@@ -1,6 +1,8 @@
 package error
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func report(line int, where string, msg string) {
 	fmt.Printf("[line %d] Error %s: %s", line, where, msg)
