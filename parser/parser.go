@@ -94,5 +94,38 @@ func (p *Parser) factor() *ast.Expression {
 }
 
 func (p *Parser) unary() *ast.Expression {
+	if p.match(token.BANG, token.MINUS) {
+		operator := p.previous()
+		right := p.unary()
+		return createNewUnary(operator, right)
+	}
+	return p.primary()
+}
 
+func (p *Parser) primary() *ast.Expression {
+	if p.match(token.FALSE) {
+		return &ast.Literal{Value: false}
+	}
+	if p.match(token.TRUE) {
+		return &ast.Literal{Value: true}
+	}
+	if p.match(token.NIL) {
+		return &ast.Literal{Value: nil}
+	}
+	if p.match(token.NUMBER, token.STRING) {
+		return &ast.Literal{Value: p.previous().Literal}
+	}
+	if p.match(token.LEFT_PAREN) {
+		expr := p.expression()
+		p.consume(token.RIGHT_PAREN, "Expect ')' after expression.")
+		return createNewGrouping(expr)
+	}
+	return nil
+}
+
+func (p *Parser) consume(atype token.TokenType, msg string) (*token.Token, error) {
+	if p.check(atype) {
+		return p.advance(), nil
+	}
+	return nil, parserror.NewParserError(p.peek(), msg)
 }
