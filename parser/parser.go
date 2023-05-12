@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"../ast"
 	"../token"
 )
 
@@ -127,5 +128,5 @@ func (p *Parser) consume(atype token.TokenType, msg string) (*token.Token, error
 	if p.check(atype) {
 		return p.advance(), nil
 	}
-	return nil, parserror.NewParserError(p.peek(), msg)
+	return nil, MakeError(p.peek(), msg)
 }
