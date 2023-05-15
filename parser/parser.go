@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"../ast"
+	parserror "../parsererror"
 	"../token"
 )
 
@@ -9,17 +11,17 @@ type Parser struct {
 	current int64
 }
 
-func (p *Parser) expression() ast.Expression {
+func (p *Parser) expression() ast.Binary {
 	return p.equality()
 }
 
-func (p *Parser) equality() ast.Expression {
+func (p *Parser) equality() ast.Binary {
 	expr := p.comparison()
 
 	for p.match(token.BANG, token.BANG_EQUAL) {
 		operator := p.previous()
 		right := p.comparison()
-		expr = createNewBinary(expr, operator, right)
+		expr = ast.Binary{Left: expr, Operator: operator, Right: right}
 	}
 
 	return expr
@@ -42,7 +44,7 @@ func (p *Parser) typeIsDefined(aType token.TokenType) bool {
 	return p.peek().TokenType == aType
 }
 
-func (p *Parser) advance() *token.Token {
+func (p *Parser) advance() token.Token {
 	if !p.isAtEnd() {
 		p.current++
 	}
@@ -57,52 +59,60 @@ func (p *Parser) peek() *token.Token {
 	return p.tokens[p.current]
 }
 
-func (p *Parser) previous() *token.Token {
-	return p.tokens[p.current-1]
+func (p *Parser) previous() token.Token {
+	return *p.tokens[p.current-1]
 }
 
-func (p *Parser) comparison() *ast.Expression {
+func (p *Parser) comparison() ast.Binary {
 	expr := p.term()
 	for p.match(token.GREATER, token.GREATER_EQUAL, token.LESS, token.LESS_EQUAL) {
 		operator := p.previous()
 		right := p.term()
-		expr = createNewBinary(expr, operator, right)
+		expr = ast.Binary{Left: expr, Operator: operator, Right: right}
 	}
 	return expr
 }
 
-func (p *Parser) term() *ast.Expression {
+func (p *Parser) term() ast.Binary {
 	expr := p.factor()
 
 	for p.match(token.MINUS, token.PLUS) {
 		operator := p.previous()
 		right := p.factor()
-		expr = createNewBinary(expr, operator, right)
+		expr = ast.Binary{Left: expr, Operator: operator, Right: right}
 	}
 	return expr
 }
 
-func (p *Parser) factor() *ast.Expression {
-	expr := p.unary()
+func (p *Parser) factor() ast.Binary {
+	unary := p.unary()
+
+	var (
+		expr ast.Binary
+	)
 
 	for p.match(token.SLASH, token.STAR) {
 		operator := p.previous()
 		right := p.unary()
-		expr = createNewBinary(expr, operator, right)
+		expr = ast.Binary{Expr: unary, Operator: operator, Right: right}
 	}
 	return expr
 }
 
-func (p *Parser) unary() *ast.Expression {
+func (p *Parser) unary() ast.Expression {
 	if p.match(token.BANG, token.MINUS) {
 		operator := p.previous()
 		right := p.unary()
-		return createNewUnary(operator, right)
+		return ast.Unary{
+			Operator: operator,
+			Right:    right,
+		}
 	}
 	return p.primary()
 }
 
-func (p *Parser) primary() *ast.Expression {
+// @TODO: Cleanup this function
+func (p *Parser) primary() *ast.Literal {
 	if p.match(token.FALSE) {
 		return &ast.Literal{Value: false}
 	}
@@ -118,14 +128,38 @@ func (p *Parser) primary() *ast.Expression {
 	if p.match(token.LEFT_PAREN) {
 		expr := p.expression()
 		p.consume(token.RIGHT_PAREN, "Expect ')' after expression.")
-		return createNewGrouping(expr)
+		return &ast.Grouping{Expr: expr}
 	}
 	return nil
 }
 
 func (p *Parser) consume(atype token.TokenType, msg string) (*token.Token, error) {
 	if p.check(atype) {
-		return p.advance(), nil
+		return *p.advance(), nil
 	}
-	return nil, parserror.NewParserError(p.peek(), msg)
+	return nil, parserror.MakeError(*p.peek(), msg)
+}
+
+/* The goal of synchronize is to disgard tokens until we've reached the beginning of the next statement*/
+func (p *Parser) synchronize() {
+	p.advance()
+	for !p.isAtEnd() {
+		if p.previous().TokenType == token.SEMICOLON {
+			return
+		}
+		switch p.peek().TokenType {
+		case token.CLASS, token.FUN, token.VAR, token.FOR, token.IF, token.WHILE, token.PRINT, token.RETURN:
+			return
+		}
+		p.advance()
+	}
+}
+
+// Driver function to kick off parsing
+func (p *Parser) Parse() []ast.Stmt {
+	stmts := make([]ast.Stmt, 0)
+	for !p.isAtEnd() {
+		stmts = append(stmts, p.declaration())
+	}
+	return stmts
 }

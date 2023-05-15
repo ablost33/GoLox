@@ -1,16 +1,14 @@
 package parserror
 
 import (
+	"fmt"
+
 	"../token"
 )
 
-func NewParserError(token token.Token, msg string) error {
-	Loxerror(token, msg)
-	return ParseError()
-}
-
-func Loxerror(token token.Token, msg string) {
-	if token.TokenType == token.LEFT_PAREN {
-		errpkg.report(token.Line, " at end", msg)
+func MakeError(tok token.Token, message string) error {
+	if tok.TokenType == token.EOF {
+		return fmt.Errorf("[line %v] Error at end: %s", tok.Line, message)
 	}
+	return fmt.Errorf("[line %v] Error at '%s': %s", tok.Line, tok.Lexeme, message)
 }
