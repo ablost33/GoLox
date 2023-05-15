@@ -25,6 +25,16 @@ type Unary struct {
 	Right    Expr
 }
 
+type Literal struct {
+	Expr
+	Value interface{}
+}
+
+type Grouping struct {
+	Expr
+	Expression Expr
+}
+
 type Binary struct {
 	Expr
 	Left     Expr
