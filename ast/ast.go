@@ -6,10 +6,6 @@ type Node interface {
 	String() string
 }
 
-type Expr interface {
-	Node
-}
-
 type Stmt interface {
 	Node
 }
@@ -33,11 +29,4 @@ type Literal struct {
 type Grouping struct {
 	Expr
 	Expression Expr
-}
-
-type Binary struct {
-	Expr
-	Left     Expr
-	Operator token.Token
-	Right    Expr
 }

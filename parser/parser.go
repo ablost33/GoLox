@@ -133,11 +133,18 @@ func (p *Parser) primary() *ast.Literal {
 	return nil
 }
 
-func (p *Parser) consume(atype token.TokenType, msg string) (*token.Token, error) {
+func (p *Parser) consume(atype token.TokenType, msg string) (token.Token, error) {
 	if p.check(atype) {
-		return *p.advance(), nil
+		return p.advance(), nil
 	}
-	return nil, parserror.MakeError(*p.peek(), msg)
+	return token.Token{}, parserror.MakeError(*p.peek(), msg)
+}
+
+func (p *Parser) check(atype token.TokenType) bool {
+	if p.isAtEnd() {
+		return false
+	}
+	return p.peek().TokenType == atype
 }
 
 /* The goal of synchronize is to disgard tokens until we've reached the beginning of the next statement*/
@@ -153,13 +160,4 @@ func (p *Parser) synchronize() {
 		}
 		p.advance()
 	}
-}
-
-// Driver function to kick off parsing
-func (p *Parser) Parse() []ast.Stmt {
-	stmts := make([]ast.Stmt, 0)
-	for !p.isAtEnd() {
-		stmts = append(stmts, p.declaration())
-	}
-	return stmts
 }
