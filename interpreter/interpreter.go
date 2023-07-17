@@ -39,6 +39,9 @@ func (i *Interpreter) VisitUnaryExpr(expr *ast.Unary) interface{} {
 	return nil
 }
 
+/*
+	We're following Ruby's rule: false & nil are falsey and everything else is truthy
+*/
 func isTruthy(object interface{}) bool {
 	if object == nil {
 		return false
