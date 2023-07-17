@@ -1,6 +1,6 @@
 package ast
 
-import "go/token"
+import "../token"
 
 type Expr interface {
 	Accept(visitor Visitor)
